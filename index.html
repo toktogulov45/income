@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Отчет Мех Эм Стр</title>
+    <title>Отчет ГИК</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { font-family: sans-serif; background-color: #f4f7f9; padding: 15px; color: #333; }
@@ -12,12 +12,20 @@
         select, input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
         button { width: 100%; padding: 15px; background-color: #0088cc; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
         .item { border-bottom: 1px solid #eee; padding: 8px 0; font-size: 14px; }
+        h3 { margin-top: 0; color: #0088cc; }
     </style>
 </head>
 <body>
     <div class="card">
-        <label>📅 Дата отчета:</label>
+        <label>📅 Дата:</label>
         <input type="date" id="date">
+
+        <label>⚙️ Система:</label>
+        <select id="system" onchange="updateCategories()">
+            <option value="Стр">Стр (Кладка/Штукатурка)</option>
+            <option value="ЭМ">ЭМ (Электрика)</option>
+            <option value="Мех">Мех (Сантехника)</option>
+        </select>
 
         <label>🏗 Блок:</label>
         <select id="block">
@@ -30,35 +38,47 @@
         <label>📍 Этаж:</label>
         <select id="floor"></select>
 
-        <label>🛠 Работа (Мех Эм Стр):</label>
-        <select id="work">
-            <option value="Грунтование">Грунтование</option>
-            <option value="Установка маяков">Установка маяков</option>
-            <option value="Нанесение смеси">Нанесение смеси</option>
-            <option value="Глянцевание">Глянцевание</option>
-            <option value="Демонтаж маяков">Демонтаж маяков</option>
+        <label>📁 Категория:</label>
+        <select id="category" onchange="updateWorks()">
+            <option value="">-- Выберите --</option>
         </select>
 
-        <label>🔢 Объем (м² / пог.м):</label>
+        <label>🛠 Работа:</label>
+        <select id="work"></select>
+
+        <label>🔢 Объем:</label>
         <input type="number" id="volume" placeholder="0.00" step="0.1">
         
         <button onclick="addRow()">➕ Добавить строку</button>
     </div>
 
     <div class="card" id="summary" style="display: none;">
-        <h3>Итого:</h3>
+        <h3>Ваш отчет:</h3>
         <div id="list"></div>
-        <button style="background-color: #28a745; margin-top: 15px;" onclick="send()">✅ Отправить отчет</button>
+        <button style="background-color: #28a745; margin-top: 15px;" onclick="send()">✅ Отправить в группу</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-
-        // Ставим сегодняшнюю дату по умолчанию
         document.getElementById('date').valueAsDate = new Date();
 
-        // Заполняем этажи
+        // Данные из ваших файлов works.json и works2.json
+        const allData = {
+            "Стр": {
+                "Кладка": ["Газоблок 600*300*200", "Газоблок 600*300*100", "Арматура 6мм"],
+                "Штукатурка": ["Бетоноконтакт", "Штукатурка стен", "Шпаклевка"]
+            },
+            "ЭМ": {
+                "Кабель": ["Монтаж Кабель медный 3х1,5мм2", "Монтаж Кабель медный 3х2,5мм2", "Гофра Ф20мм"],
+                "Щиты": ["ЩК (Установка)", "ЩЭ (Установка)", "Автомат 16А"]
+            },
+            "Мех": {
+                "ППР": ["Труба Ø20", "Труба Ø25", "Тройник Ø20"],
+                "Канализация": ["Труба ПВХ д110", "Труба ПВХ д50", "Унитаз"]
+            }
+        };
+
         const f = document.getElementById('floor');
         for(let i=1; i<=24; i++) {
             let o = document.createElement('option');
@@ -66,17 +86,48 @@
             f.appendChild(o);
         }
 
+        function updateCategories() {
+            const sys = document.getElementById('system').value;
+            const catSel = document.getElementById('category');
+            catSel.innerHTML = '<option value="">-- Выберите --</option>';
+            for (let cat in allData[sys]) {
+                let o = document.createElement('option');
+                o.value = cat; o.textContent = cat;
+                catSel.appendChild(o);
+            }
+            updateWorks();
+        }
+
+        function updateWorks() {
+            const sys = document.getElementById('system').value;
+            const cat = document.getElementById('category').value;
+            const workSel = document.getElementById('work');
+            workSel.innerHTML = '';
+            if (allData[sys][cat]) {
+                allData[sys][cat].forEach(w => {
+                    let o = document.createElement('option');
+                    o.value = o.textContent = w;
+                    workSel.appendChild(o);
+                });
+            }
+        }
+
+        updateCategories();
+
         let rows = [];
         function addRow() {
-            const date = document.getElementById('date').value;
-            const block = document.getElementById('block').value;
-            const floor = document.getElementById('floor').value;
-            const work = document.getElementById('work').value;
             const vol = document.getElementById('volume').value;
-
             if(!vol) return alert("Введите объем!");
 
-            rows.push({ date, block, floor, work, vol });
+            rows.push({
+                date: document.getElementById('date').value,
+                sys: document.getElementById('system').value,
+                block: document.getElementById('block').value,
+                floor: document.getElementById('floor').value,
+                cat: document.getElementById('category').value,
+                work: document.getElementById('work').value,
+                vol: vol
+            });
             render();
             document.getElementById('volume').value = '';
         }
@@ -85,7 +136,7 @@
             const l = document.getElementById('list');
             l.innerHTML = '';
             rows.forEach((r, i) => {
-                l.innerHTML += `<div class="item">${i+1}. ${r.date} | ${r.block} | эт.${r.floor} | ${r.work}: <b>${r.vol}</b></div>`;
+                l.innerHTML += `<div class="item">${i+1}. ${r.sys} | ${r.block} | эт.${r.floor} | ${r.work}: <b>${r.vol}</b></div>`;
             });
             document.getElementById('summary').style.display = 'block';
         }
