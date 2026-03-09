@@ -3,69 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Отчет СТР</title>
+    <title>Отчет ГИК Бишкек</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; background-color: #f0f2f5; color: #333; padding: 15px; }
-        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
-        select, input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 15px; background-color: #0088cc; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .row-item { font-size: 14px; border-bottom: 1px solid #eee; padding: 5px 0; }
-        h3 { margin-top: 0; color: #0088cc; }
+        body { font-family: sans-serif; background-color: #f4f7f9; color: #333; padding: 15px; }
+        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        select, input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+        button { width: 100%; padding: 15px; background-color: #0088cc; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; }
+        .row-item { font-size: 14px; border-bottom: 1px solid #eee; padding: 8px 0; }
+        label { font-weight: bold; font-size: 14px; color: #666; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h3>Новая запись</h3>
-        <label>Категория:</label>
+        <label>🏗 Блок:</label>
+        <select id="block">
+            <option value="Блок 17">Блок 17</option>
+            <option value="Блок 18">Блок 18</option>
+            <option value="Блок 22">Блок 22</option>
+            <option value="Блок 26">Блок 26</option>
+            <option value="Блок 29">Блок 29</option>
+        </select>
+
+        <label>📍 Этаж:</label>
+        <select id="floor"></select>
+
+        <label>📁 Категория:</label>
         <select id="category" onchange="updateWorks()">
             <option value="">-- Выберите --</option>
         </select>
 
-        <label>Работа:</label>
-        <select id="work">
-            <option value="">-- Сначала выберите категорию --</option>
-        </select>
+        <label>🛠 Работа:</label>
+        <select id="work"></select>
 
-        <label>Объем:</label>
+        <label>🔢 Объем:</label>
         <input type="number" id="volume" placeholder="0.00" step="0.1">
         
-        <button onclick="addRow()">➕ Добавить в список</button>
+        <button onclick="addRow()">➕ Добавить строку</button>
     </div>
 
     <div class="card" id="summary-card" style="display: none;">
-        <h3>Ваш отчет:</h3>
         <div id="rows-list"></div>
-        <button style="background-color: #28a745; margin-top: 15px;" onclick="sendToBot()">✅ Отправить боту</button>
+        <button style="background-color: #28a745; margin-top: 15px;" onclick="sendToBot()">✅ Отправить в ГИК</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Развернуть на весь экран
+        tg.expand();
 
         const data = {
-            "Кладка": [
-                "Газоблок Стенный 600*300*200", "ВР 4 Сетка-Сварная 15см 1*2000мм",
-                "Газоблок Стенный 600*300*100", "ВР 4 Сетка-Сварная 10см 1*2000мм",
-                "Арматура Гладкая 6мм", "Сетка Металлическая для Штукатурки 10*10мм"
-            ],
-            "Усиление стен": [
-                "Уголок 50*50*5", "Уголок 40*40*4", "Полоса Стальной 40*3мм", "Арматура Гладкая 10мм"
-            ],
-            "Штукатурка": [
-                "Бетоноконтакт", "Сетка Сварная ВР4 15*15 1*5m2", "Штукатурка стен",
-                "Гипсовая Штукатурка Grender", "Гипсовая Шпатлевка Глат", "Финишная шпаклевка", "Покраска"
-            ]
+            "Кладка": ["Газоблок 600*300*200", "Сетка 15см", "Газоблок 600*300*100", "Арматура 6мм"],
+            "Усиление стен": ["Уголок 50*50*5", "Уголок 40*40*4", "Полоса 40*3мм"],
+            "Штукатурка": ["Бетоноконтакт", "Штукатурка стен", "Шпаклевка Глат", "Покраска"]
         };
 
-        const reportRows = [];
+        // Заполнение этажей (1-24)
+        const floorSelect = document.getElementById('floor');
+        for (let i = 1; i <= 24; i++) {
+            let opt = document.createElement('option');
+            opt.value = i; opt.innerHTML = i + " этаж";
+            floorSelect.appendChild(opt);
+        }
 
-        // Инициализация категорий
         const catSelect = document.getElementById('category');
         for (let cat in data) {
             let opt = document.createElement('option');
-            opt.value = cat;
-            opt.innerHTML = cat;
+            opt.value = cat; opt.innerHTML = cat;
             catSelect.appendChild(opt);
         }
 
@@ -76,41 +79,38 @@
             if (data[cat]) {
                 data[cat].forEach(w => {
                     let opt = document.createElement('option');
-                    opt.value = w;
-                    opt.innerHTML = w;
+                    opt.value = w; opt.innerHTML = w;
                     workSelect.appendChild(opt);
                 });
             }
         }
 
+        const reportRows = [];
         function addRow() {
-            const cat = catSelect.value;
+            const block = document.getElementById('block').value;
+            const floor = document.getElementById('floor').value;
             const work = document.getElementById('work').value;
             const vol = document.getElementById('volume').value;
+            const cat = catSelect.value;
 
-            if (!cat || !work || !vol) {
-                alert("Заполните все поля!");
-                return;
-            }
+            if (!vol) return alert("Введите объем!");
 
-            reportRows.push({ cat, work, vol });
+            reportRows.push({ block, floor, cat, work, vol });
             renderRows();
-            document.getElementById('volume').value = ''; // Очистить поле объема
+            document.getElementById('volume').value = '';
         }
 
         function renderRows() {
             const list = document.getElementById('rows-list');
-            const summary = document.getElementById('summary-card');
             list.innerHTML = '';
-            reportRows.forEach((r, index) => {
-                list.innerHTML += `<div class="row-item">${index + 1}. ${r.work} — <b>${r.vol}</b></div>`;
+            reportRows.forEach((r, i) => {
+                list.innerHTML += `<div class="row-item">${i+1}. ${r.block}, эт.${r.floor}: ${r.work} — <b>${r.vol}</b></div>`;
             });
-            summary.style.display = reportRows.length > 0 ? 'block' : 'none';
+            document.getElementById('summary-card').style.display = 'block';
         }
 
         function sendToBot() {
-            if (reportRows.length === 0) return;
-            tg.sendData(JSON.stringify(reportRows)); // Отправка JSON строки боту
+            tg.sendData(JSON.stringify(reportRows));
             tg.close();
         }
     </script>
