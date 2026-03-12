@@ -10,7 +10,7 @@
             font-family: sans-serif;
             background-color: var(--tg-theme-bg-color, #f4f4f5);
             color: var(--tg-theme-text-color, #000000);
-            padding: 15px; margin: 0;
+            padding: 15px; margin: 0; padding-bottom: 30px;
         }
         .header-block, .item-block {
             background-color: var(--tg-theme-secondary-bg-color, #ffffff);
@@ -26,11 +26,16 @@
             width: 100%; box-sizing: border-box; padding: 12px 10px; margin-top: 5px;
             border: 1px solid var(--tg-theme-hint-color, #ccc); border-radius: 5px;
             background-color: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); font-size: 15px;
+            /* Убираем стандартные тени iOS */
+            -webkit-appearance: none; appearance: none;
         }
         
-        /* Исправление верстки для телефона */
-        .row { display: flex; flex-wrap: wrap; gap: 10px; }
-        .row > div { flex: 1 1 120px; /* Блоки будут занимать равное место, но если меньше 120px - перенесутся */ }
+        /* Жесткая нерушимая сетка 50/50 для цены и количества */
+        .grid-2 { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px; 
+        }
         
         .add-btn {
             width: 100%; padding: 14px; margin-bottom: 30px;
@@ -49,16 +54,11 @@
     <div class="header-block">
         <h2>📄 Данные накладной</h2>
         
-        <div class="row">
-            <div>
-                <label>Дата</label>
-                <input type="date" id="inv-date" required>
-            </div>
-            <div>
-                <label>№ Накладной</label>
-                <input type="text" id="inv-num" inputmode="text" placeholder="Например: 125-А" required>
-            </div>
-        </div>
+        <label>Дата</label>
+        <input type="date" id="inv-date" required>
+        
+        <label>№ Накладной</label>
+        <input type="text" id="inv-num" inputmode="text" placeholder="Например: 125-А" required>
 
         <label>Поставщик / Водитель</label>
         <input type="text" id="inv-supplier" placeholder="ОсОО СтройМир / Газель 123" required>
@@ -92,7 +92,7 @@
                 <label>Наименование материала</label>
                 <input type="text" class="i-name" placeholder="Например: Цемент М500" required>
 
-                <div class="row">
+                <div class="grid-2">
                     <div>
                         <label>Цена (за ед.)</label>
                         <input type="number" class="i-price" step="0.01" inputmode="decimal" placeholder="0.00" required>
@@ -101,19 +101,18 @@
                         <label>Кол-во</label>
                         <input type="number" class="i-qty" step="0.01" inputmode="decimal" placeholder="0" required>
                     </div>
-                    <div>
-                        <label>Ед. изм.</label>
-                        <select class="i-unit">
-                            <option value="шт">шт</option>
-                            <option value="кг">кг</option>
-                            <option value="тн">тн</option>
-                            <option value="м3">м³</option>
-                            <option value="м.п.">м.п.</option>
-                            <option value="меш">меш</option>
-                            <option value="л">литр</option>
-                        </select>
-                    </div>
                 </div>
+                
+                <label>Ед. изм.</label>
+                <select class="i-unit">
+                    <option value="шт">шт</option>
+                    <option value="кг">кг</option>
+                    <option value="тн">тн</option>
+                    <option value="м3">м³</option>
+                    <option value="м.п.">м.п.</option>
+                    <option value="меш">меш</option>
+                    <option value="л">литр</option>
+                </select>
             `;
             container.appendChild(div);
         }
